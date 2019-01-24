@@ -1,0 +1,88 @@
+server:
+  port: ${port:8080}
+
+spring:
+  application:
+    name: ${name:be-charge}
+  profiles:
+    active: ${profiles_active:local}
+  data:
+    mongodb:
+      uri: ${mongodb_uri:mongodb://localhost:27017/be-charge}
+  cloud:
+    stream:
+      bindings:
+        subscribeChargeProcessingRequested:
+          destination: x-charge-processing-requested
+          group: q-be-charge-processing-requested
+          consumer:
+            maxAttempts: 1
+                   
+        publishPaymentDataEnrichmentRequested:
+          destination: x-payment-data-enrichment-requested
+        publishChargeProcessingRequestedWithWait:
+          destination: x-charge-processing-requested.wait
+        publishChargeOperationError:
+          destination: x-charge-operation-error
+      
+      rabbit:
+        bindings:
+          subscribeChargeProcessingRequested:
+            consumer:
+              exchangeType: fanout
+              
+          publishChargeOperationError:
+            producer:
+              exchangeType: fanout
+              
+          publishPaymentDataEnrichmentRequested:
+            producer:
+              exchangeType: fanout
+              
+          publishChargeProcessingRequestedWithWait:
+            producer:
+              exchangeType: fanout
+              delayedExchange: true
+
+      binders:
+        rabbitmq:
+          type: rabbit
+          environment:
+            spring:
+              rabbitmq:
+                host: ${rabbit_host:localhost}
+                port: ${rabbit_port:5672}
+                username: ${rabbit_username:guest}
+                password: ${rabbit_password:guest}
+                virtual-host: /
+
+security:
+  basic:
+    enabled: false
+management:
+  security:
+    enabled: false
+
+logging:
+  level:
+    root: ${logging_level:INFO}
+  gelf:
+    host: ${logging_gelf_host:localhost}
+    port: ${logging_gelf_port:12201}
+    fields: ${logging_gelf_fields:traceId,spanId}
+    extractStackTrace: ${logging_gelf_extractStackTrace:true}
+    filterStackTrace: ${logging_gelf_filterStackTrace:true}
+    timestampPattern: ${logging_gelf_timestampPattern:yyyy-MM-dd HH:mm:ss.SSS}
+    
+app:
+  rabbitmq:
+    ttlInMilliseconds: ${rabbitmq_ttlInMilliseconds:3600000} # 1 hour
+    delayInMilliseconds: ${rabbitmq_delayInMilliseconds:30000} # 15 minutes
+    maximumNumberOfRetries: ${rabbitmq_maximumNumberOfRetries:3}
+
+info:
+  build:
+    groupId: '@project.groupId@'
+    artifactId: '@project.artifactId@'
+    version: '@project.version@'
+    date: '@timestamp@'
